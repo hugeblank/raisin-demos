@@ -3,8 +3,6 @@
 -- You are free to add, remove, and distribute from this program as you wish as long as these first three lines are kept in tact
 
 local raisin = require("raisin.raisin") -- load Raisin
---local thread = raisin.thread -- Thread library isn't used in this demo, all we're using are groups
-local group = raisin.group -- Make the group API easier to use, you may or may not want to do this
 
 --[[ GROUP THREADING DEMONSTRATION
     Our objective will be to make 3 threads among 2 groups.
@@ -16,9 +14,8 @@ local group = raisin.group -- Make the group API easier to use, you may or may n
     Let's begin!
 ]]
 
-local grp1 = group.wrap(group.add(1)) -- Method 1 of creating a group: adding then immediately wrapping it
-local g2id = group.add(2) -- Method 2 of creating a group: adding it and using the group ID in the thread library as the third argument to functions that take in a group parameter
-local grp2 = group.wrap(g2id) -- For this example I'll be sticking to wrapping it, but we do still need the ID for the group to be able to toggle it
+local grp1 = raisin.group(1) -- We create the two groups for the threads
+local grp2 = raisin.group(2)
 
 --[[ A NOTE ON PRIORITIES
     It's worth taking into consideration the power of selecting the priorities of threads and groups. 
@@ -28,9 +25,10 @@ local grp2 = group.wrap(g2id) -- For this example I'll be sticking to wrapping i
 ]]
 
 
-grp2.add(function() -- Let's start with the spinner in group 2. It's the easiest
+raisin.thread(function() -- Let's start with the spinner in group 2. It's the easiest
     print("this thread is in group 2") -- Let's mention that we have a thread in group 2.
-    local x, y = 30, 10 -- Setting some arbitrary coordinates for the spinner, just for the sake of the demo.
+    sleep()
+    local x, y = 1, 5 -- Setting some arbitrary coordinates for the spinner, just for the sake of the demo.
     while true do -- Begin thread
         term.setCursorPos(x, y) -- Set the cursor position to the coordinates, since we won't know where the cursor will be
         term.write("|") -- Write the animation
@@ -45,48 +43,46 @@ grp2.add(function() -- Let's start with the spinner in group 2. It's the easiest
         term.write("\\")
         sleep(.1)
     end
-end, 0) -- We set the priority to 0, but in this case it doesn't matter.
+end, 0, grp2) -- We set the priority to 0, in this case it doesn't matter. Then we set the group that this thread is a member of.
 
-grp1.add(function() -- Now let's add the input thread with our toggling
+raisin.thread(function() -- Now let's add the input thread with our toggling
     print('this thread is in group 1, a') -- Mentioning that this thread is the first thread in group 1 (as denoted by it's priority being 0, and the following thread being 1)
-    local x, y = 30, 9 -- Setting more arbitrary coorinates
     sleep() -- Allowing all other threads to spit out their activation statements before going into our own routine
+    local x, y = 1, 4 -- Setting more arbitrary coorinates
     while true do -- Begin the thread
-        if group.state(g2id) == true then -- If the second group is enabled
-            term.setCursorPos(x, y) -- Set the cursor to the right position
-            term.clearLine() -- Clear the line
-            print("type stop to stop group 2") -- Output the stop text
-            term.setCursorPos(x+1, y) -- Set the cursor postion so that it's next to the spinner
-            -- The line above is really odd, even if you set the y value to something really far away, the read function jumps back next to the spinner. The entire thread had to be written around this issue.
-            -- If you have any clue what's going wrong I'd love some input on it. This issue is unrelated to Raisin, so the demo can continue.
-            local res = read() -- Get the input
-            if res:lower() == "stop" then -- If the text is 'stop'
-                group.toggle(g2id) -- toggle the group
-            end
+        term.setCursorPos(x, y) -- Set the cursor to the right position
+        term.clearLine() -- Clear the line
+        local res
+        if grp2.state() == true then -- If the second group is enabled
+            print("type 'stop' to stop group 2") -- Output the stop text
         else -- OTHERWISE
-            term.setCursorPos(x, y) -- set the cursor position
-            term.clearLine() -- Clear the line
-            print("type start to start group 2") -- Output the start text
-            term.setCursorPos(x+1, y+1) -- Set the cursor position abain so that it's next to the spinner
-            local res = read() -- Get the input
-            if res:lower() == "start" then -- If the text is 'start'
-                group.toggle(g2id) -- toggle the group
-            end
+            print("type 'start' to start group 2") -- Output the start text
+        end
+        term.setCursorPos(x+1, y+1) -- Set the cursor position again so that it's next to the spinner
+        term.setCursorBlink(true) -- Taking care of minor glitch with cursor
+        res = read() -- Get the input
+        term.setCursorBlink(false)
+        if res:lower() == "start" or res:lower() == "stop" then -- If the text is 'start' or 'stop'
+            grp2.toggle() -- toggle the group
+            sleep() -- yeild to allow activation of the group in the event that it's being enabled
         end
         paintutils.drawLine(x+1, y+1, x+5, y+1, colors.black) -- Clear the text being read
     end
-end, 0) -- This thread is set to priority 0, like the one in group 2, but since group 1 has a higher priority than group 2, this thread gets executed first. 
+end, 0, grp1) -- This thread is set to priority 0, like the one in group 2, but since group 1 has a higher priority than group 2, this thread gets executed first. 
 
-grp1.add(function() -- The final thread we'll add in this demonstration is the counter thread which we'll add to group 1. 
+raisin.thread(function() -- The final thread we'll add in this demonstration is the counter thread which we'll add to group 1. 
     print("this thread is in group 1, b") -- Mention that this thread has been added, and it's the second thread of group 1
+    sleep()
     local a = 0 -- Set the counter variable
     while true do -- Begin the thread
-        term.setCursorPos(30, 11) -- Set the cursor position to another arbitrary value
+        local oc = {term.getCursorPos()}
+        term.setCursorPos(1, 6) -- Set the cursor position to another arbitrary value
         print(a) -- Print the counter value 
         a = a+1 -- Add one to it
+        term.setCursorPos(table.unpack(oc))
         sleep(1) -- yield
     end
-end, 1)
+end, 1, grp1)
 
 
 term.clear() -- Clear the screen

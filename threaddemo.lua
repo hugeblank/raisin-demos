@@ -3,13 +3,11 @@
 -- You are free to add, remove, and distribute from this program as you wish as long as these first three lines are kept in tact
 
 local raisin = require("raisin.raisin") -- Load Raisin
-local thread = raisin.thread -- Make the thread library more accessible
---local group = raisin.group -- Group library isn't used in this demo, all we're using are threads
 
 --[[ GENERIC RAISIN THREAD DEMONSTRATION
     Our objective will be to make 2 threads with different priorities
     The first thread will be a generic thread that counts the seconds.
-    The second thread will be stop the first thread every five seconds, and wait for a mouse click to continue counting.
+    The second thread will stop the first thread every five seconds, and wait for a mouse click to continue counting.
 
     The master group will be used in this demonstration. By default when a group number is not provided to thread.add, it goes into the master group.
     This allows for simple programs to be created in just a few lines without the need for creating a group. All this mention of groups may be going over your head. 
@@ -19,28 +17,30 @@ local thread = raisin.thread -- Make the thread library more accessible
     Let's begin!
 ]]
 
-local a = 0 -- Create a basic counting value
+local a, clicked = 1, false -- Create a basic counting value
 
 -- We start by creating the counter, since we'll need it's ID later on to toggle it.
-local id = thread.add(function() -- Create a new thread.
-    while true do -- Begin thread
-        a = a+1 -- Add 1 to a
-        print(a) -- Print a
-        sleep(1) -- yield/sleep for a second
+local slave = raisin.thread(function() -- Create a new thread.
+    while true do
+        print(a)
+        sleep(1)
+        a = a+1
+        clicked = false
     end
 end, 0) -- Set the priority of this thread to 0. This way on starting the program this thread goes first before the one below. 
 -- If we let the one below go first, we'd have to click the first time the program starts. 
 
 -- Now let's create the thread stopper
-thread.add(function() -- Create another new thread
+raisin.thread(function() -- Create another new thread
     while true do -- Begin thread
-        if a%5 == 0 then -- If the remainder of a/5 is 0 
+        if a%5 == 0 and not clicked then
             print("pausing thread...") -- Notify the user that the thread is being paused
-            thread.toggle(id) -- Toggle the thread above
-            print("click anywhere to continue counting") -- Notify the user that they need to click to re-enable the thread
+            slave.toggle(id) -- Toggle the slave thread above
+            print("click anywhere to continue counting") -- Notify the user that they need to click to re-enable the slave
             os.pullEvent("mouse_click") -- pull that mouse click event
+            clicked = true
             print('continuing...') -- Notify the user we're continuing execution
-            thread.toggle(id) -- Toggle the thread again to enable it
+            slave.toggle(id) -- Toggle the thread again to enable it
         end
         sleep() -- Yield for a second
     end
