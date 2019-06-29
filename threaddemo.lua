@@ -2,7 +2,7 @@
 -- This program is for a demonstration of Raisin, a program by hugeblank. Found at: https://github.com/hugeblank/raisin
 -- You are free to add, remove, and distribute from this program as you wish as long as these first three lines are kept in tact
 
-local raisin = require("raisin.raisin") -- Load Raisin
+local raisin = require("raisin") -- Load Raisin
 
 --[[ GENERIC RAISIN THREAD DEMONSTRATION
     Our objective will be to make 2 threads with different priorities
@@ -19,7 +19,7 @@ local raisin = require("raisin.raisin") -- Load Raisin
 
 local a, clicked = 1, false -- Create a basic counting value
 
--- We start by creating the counter, since we'll need it's ID later on to toggle it.
+-- We start by creating the counter, since we'll need it's thread data later on to toggle it.
 local slave = raisin.thread(function() -- Create a new thread.
     while true do
         print(a)
@@ -55,7 +55,7 @@ end, 1) -- Set the priority of this thread to something lower than the first one
     end
 end, 2)]]
 
-raisin.manager.run() -- Signal to start execution
+raisin.manager.run(os.pullEvent) -- Signal to start execution
 
 --[[ADDITIONAL ACTIVITIES
     Replace the mouse click thread with something that requires you to type in a specific word, or do a specific combination of actions
