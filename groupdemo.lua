@@ -2,7 +2,7 @@
 -- This program is for a demonstration of Raisin, a program by hugeblank. Found at: https://github.com/hugeblank/raisin
 -- You are free to add, remove, and distribute from this program as you wish as long as these first three lines are kept in tact
 
-local raisin = require("raisin") -- load Raisin
+local raisin = require("raisin").manager(os.pullEvent) -- load Raisin
 
 --[[ GROUP THREADING DEMONSTRATION
     Our objective will be to make 3 threads among 2 groups.
@@ -87,7 +87,7 @@ end, 1, grp1)
 
 term.clear() -- Clear the screen
 term.setCursorPos(1, 1) -- Set the cursor position to the origin
-raisin.manager.run(os.pullEvent) -- Execute the threads
+raisin.run() -- Execute the threads
 
 --[[ ADDITIONAL ACTIVITIES
     Add a thread to the master group that after enables and disables the first group. You could do this one a number of ways.

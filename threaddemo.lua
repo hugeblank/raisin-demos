@@ -2,7 +2,7 @@
 -- This program is for a demonstration of Raisin, a program by hugeblank. Found at: https://github.com/hugeblank/raisin
 -- You are free to add, remove, and distribute from this program as you wish as long as these first three lines are kept in tact
 
-local raisin = require("raisin") -- Load Raisin
+local raisin = require("raisin").manager(os.pullEvent) -- Load Raisin
 
 --[[ GENERIC RAISIN THREAD DEMONSTRATION
     Our objective will be to make 2 threads with different priorities
@@ -35,12 +35,12 @@ raisin.thread(function() -- Create another new thread
     while true do -- Begin thread
         if a%5 == 0 and not clicked then
             print("pausing thread...") -- Notify the user that the thread is being paused
-            slave.toggle(id) -- Toggle the slave thread above
+            slave.toggle() -- Toggle the slave thread above
             print("click anywhere to continue counting") -- Notify the user that they need to click to re-enable the slave
             os.pullEvent("mouse_click") -- pull that mouse click event
             clicked = true
             print('continuing...') -- Notify the user we're continuing execution
-            slave.toggle(id) -- Toggle the thread again to enable it
+            slave.toggle() -- Toggle the thread again to enable it
         end
         sleep() -- Yield for a second
     end
@@ -55,7 +55,7 @@ end, 1) -- Set the priority of this thread to something lower than the first one
     end
 end, 2)]]
 
-raisin.manager.run(os.pullEvent) -- Signal to start execution
+raisin.run() -- Signal to start execution
 
 --[[ADDITIONAL ACTIVITIES
     Replace the mouse click thread with something that requires you to type in a specific word, or do a specific combination of actions
