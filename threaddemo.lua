@@ -6,56 +6,57 @@ local raisin = require("raisin").manager(os.pullEvent) -- Load Raisin
 
 --[[ GENERIC RAISIN THREAD DEMONSTRATION
     Our objective will be to make 2 threads with different priorities
-    The first thread will be a generic thread that counts the seconds.
-    The second thread will stop the first thread every five seconds, and wait for a mouse click to continue counting.
+    The first thread will be a generic thread that counts the seconds and stops itself every 5 seconds.
+    The second thread will wait for a mouse click to resume the first thread and continue counting.
 
-    The master group will be used in this demonstration. By default when a group number is not provided to thread.add, it goes into the master group.
-    This allows for simple programs to be created in just a few lines without the need for creating a group. All this mention of groups may be going over your head. 
-    I suggest after this demonstration you look at my groupdemo.lua file. 
-
-    TL;DR the thread library is an easy access point for multithreading without getting into the raisin 'group' kerfuffle
     Let's begin!
 ]]
 
-local a, clicked = 1, false -- Create a basic counting value
+local a = 1 -- Create a basic counting value
+local slave -- Define variable for slave thread to occupy
 
--- We start by creating the counter, since we'll need it's thread data later on to toggle it.
-local slave = raisin.thread(function() -- Create a new thread.
+
+-- Now let's start with the click listener
+raisin.thread(function() -- Create master thread
+    print("Master thread running") -- Verify that this is the second thread executed
     while true do
-        print(a)
-        sleep(1)
-        a = a+1
-        clicked = false
-    end
-end, 0) -- Set the priority of this thread to 0. This way on starting the program this thread goes first before the one below. 
--- If we let the one below go first, we'd have to click the first time the program starts. 
-
--- Now let's create the thread stopper
-raisin.thread(function() -- Create another new thread
-    while true do -- Begin thread
-        if a%5 == 0 and not clicked then
-            print("pausing thread...") -- Notify the user that the thread is being paused
-            slave.toggle() -- Toggle the slave thread above
+        if not slave.state() then -- If the thread is disabled
             print("click anywhere to continue counting") -- Notify the user that they need to click to re-enable the slave
             os.pullEvent("mouse_click") -- pull that mouse click event
-            clicked = true
             print('continuing...') -- Notify the user we're continuing execution
             slave.toggle() -- Toggle the thread again to enable it
         end
-        sleep() -- Yield for a second
+        sleep(1) -- Yield for a second
     end
-end, 1) -- Set the priority of this thread to something lower than the first one. 
--- We could set this thread to priority 0 and it would still execute after the thread above. Threads follow priority order, but if 2 threads share the same priority they go in the order that they were written.
+end, 1) -- Set the priority of this thread to something lower than the first one
+-- This thread executes second because its priority is going to be larger than the slave thread
+-- We test this with the first print statement in the function
 
---[[thread.add(function() -- Mysterious Function for Additional Activities
+slave = raisin.thread(function() -- Create slave thread.
+    print("Slave thread running") -- Verify this is the first thread executed
+    while true do
+        print(a) -- Print count
+        if a%5 == 0 then -- If we reach a multiple of 5
+            print("pausing thread...") -- Notify the user that the thread is being paused
+            slave.toggle() -- And then pause execution on this thread
+        end
+        a = a+1 -- Increment
+        sleep(1)
+    end
+end, 0) -- Set the priority of this thread to 0. This way on starting the program this thread goes first before the one below.
+-- This thread executes first since its priority is 0.
+-- We test this in the same way as the master thread
+
+--[[raisin.thread(function() -- Mysterious Function for Additional Activities
     print("> exiting in")
     for i = 3, 1, -1 do
         print("> "..i)
         sleep(1)
     end
+    -- How could we get this thread to stop execution?
 end, 2)]]
 
-raisin.run() -- Signal to start execution
+raisin.run(raisin.onDeath.waitForAll()) -- Signal to start execution
 
 --[[ADDITIONAL ACTIVITIES
     Replace the mouse click thread with something that requires you to type in a specific word, or do a specific combination of actions
